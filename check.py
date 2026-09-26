@@ -2,7 +2,9 @@ import json
 import os
 import smtplib
 import urllib.request
+from datetime import datetime
 from email.message import EmailMessage
+from zoneinfo import ZoneInfo
 
 URL = "https://ethos.smarticket.co.il/iframe/event/28114"
 SOLD_OUT = "הכרטיסים אזלו"
@@ -11,14 +13,24 @@ EMAIL_TO = os.environ["EMAIL_TO"]
 SMTP_APP_PASSWORD = os.environ["SMTP_APP_PASSWORD"]
 
 
-def send_telegram(text):
+def now_label():
+    return datetime.now(ZoneInfo("Asia/Jerusalem")).strftime("%H:%M")
+
+
+def send_telegram(text, silent=False):
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
     chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
     if not token or not chat_id:
         print("telegram skipped")
         return
 
-    payload = json.dumps({"chat_id": chat_id, "text": text}).encode()
+    payload = json.dumps(
+        {
+            "chat_id": chat_id,
+            "text": text,
+            "disable_notification": silent,
+        }
+    ).encode()
     request = urllib.request.Request(
         f"https://api.telegram.org/bot{token}/sendMessage",
         data=payload,
@@ -56,14 +68,17 @@ def main():
         html = response.read().decode("utf-8", "replace")
 
     if status in (403, 429):
+        send_telegram(f"בדיקה {now_label()} — האתר חסם את הבדיקה ({status}).", silent=True)
         print(f"blocked {status}")
         return
 
     if PAGE_MARKER not in html:
+        send_telegram(f"בדיקה {now_label()} — הדף לא נטען. לא נשלחה התראה.", silent=True)
         print("page did not load, no email sent")
         return
 
     if SOLD_OUT in html:
+        send_telegram(f"בדיקה {now_label()} — הכרטיסים עדיין אזלו.", silent=True)
         print("still sold out")
         return
 
