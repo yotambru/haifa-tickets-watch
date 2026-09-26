@@ -14,6 +14,8 @@ PAGE_MARKER = "פסטיבל הסרטים"
 STATE_PATH = os.environ.get("STATE_PATH", "state/log.json")
 MAX_LINES = 72
 INTERVAL_SECONDS = 150
+ALERT_REPEATS = 5
+ALERT_GAP_SECONDS = 45
 EMAIL_TO = os.environ["EMAIL_TO"]
 SMTP_APP_PASSWORD = os.environ["SMTP_APP_PASSWORD"]
 
@@ -140,10 +142,14 @@ def check_once():
         return
 
     alert = f"נפתחו כנראה כרטיסים לפסטיבל הסרטים בחיפה!\n{URL}"
-    send_telegram(alert)
-    send_email("נפתחו כנראה כרטיסים", alert)
+    for attempt in range(1, ALERT_REPEATS + 1):
+        numbered = f"{alert}\n({attempt}/{ALERT_REPEATS})"
+        send_telegram(numbered)
+        send_email("נפתחו כנראה כרטיסים", numbered)
+        print(f"ticket alert {attempt}/{ALERT_REPEATS}")
+        if attempt < ALERT_REPEATS:
+            time.sleep(ALERT_GAP_SECONDS)
     log_check(f"{now_label()} — נשלחה התראה: ייתכן שנפתחו כרטיסים.")
-    print("ticket alert sent")
 
 
 def main():
