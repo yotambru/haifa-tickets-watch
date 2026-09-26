@@ -18,6 +18,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - uses: actions/cache/restore@v4
+        with:
+          path: state
+          key: ticket-log-${{ github.run_id }}
+          restore-keys: |
+            ticket-log-
       - name: Check ticket page
         env:
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
@@ -26,3 +32,8 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           SEND_TEST: ${{ github.event.inputs.send_test }}
         run: python check.py
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: state
+          key: ticket-log-${{ github.run_id }}
