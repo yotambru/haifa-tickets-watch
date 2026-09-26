@@ -1,6 +1,7 @@
 import json
 import os
 import smtplib
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime
@@ -11,7 +12,7 @@ URL = "https://ethos.smarticket.co.il/iframe/event/28114"
 SOLD_OUT = "הכרטיסים אזלו"
 PAGE_MARKER = "פסטיבל הסרטים"
 STATE_PATH = os.environ.get("STATE_PATH", "state/log.json")
-MAX_LINES = 20
+MAX_LINES = 36
 EMAIL_TO = os.environ["EMAIL_TO"]
 SMTP_APP_PASSWORD = os.environ["SMTP_APP_PASSWORD"]
 
@@ -109,16 +110,7 @@ def send_email(subject, body):
         smtp.send_message(mail)
 
 
-def main():
-    if os.environ.get("SEND_TEST") == "true":
-        send_email(
-            "בדיקת התראה מהענן",
-            "אם אתה רואה את זה, בדיקת הכרטיסים רצה גם כשהמחשב כבוי.",
-        )
-        send_telegram("בדיקת התראה. אם אתה רואה את זה, טלגרם עובד.")
-        print("test email sent")
-        return
-
+def check_once():
     request = urllib.request.Request(URL, headers={"User-Agent": "Mozilla/5.0"})
     with urllib.request.urlopen(request, timeout=30) as response:
         status = response.status
@@ -144,6 +136,37 @@ def main():
     send_telegram(alert)
     log_check(f"{now_label()} — נשלחה התראה: ייתכן שנפתחו כרטיסים.")
     print("tickets email sent")
+
+
+def main():
+    if os.environ.get("SEND_TEST") == "true":
+        send_email(
+            "בדיקת התראה מהענן",
+            "אם אתה רואה את זה, בדיקת הכרטיסים רצה גם כשהמחשב כבוי.",
+        )
+        send_telegram("בדיקת התראה. אם אתה רואה את זה, טלגרם עובד.")
+        print("test email sent")
+        return
+
+    loop_minutes = int(os.environ.get("LOOP_MINUTES", "0"))
+    if loop_minutes <= 0:
+        check_once()
+        return
+
+    deadline = time.time() + loop_minutes * 60
+    while True:
+        try:
+            check_once()
+        except Exception as error:
+            print("check error", error)
+            try:
+                log_check(f"{now_label()} — שגיאה בבדיקה.")
+            except Exception as log_error:
+                print("log error", log_error)
+        remaining = deadline - time.time()
+        if remaining < 300:
+            break
+        time.sleep(300)
 
 
 if __name__ == "__main__":
