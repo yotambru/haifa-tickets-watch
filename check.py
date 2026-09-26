@@ -12,7 +12,8 @@ URL = "https://ethos.smarticket.co.il/iframe/event/28114"
 SOLD_OUT = "הכרטיסים אזלו"
 PAGE_MARKER = "פסטיבל הסרטים"
 STATE_PATH = os.environ.get("STATE_PATH", "state/log.json")
-MAX_LINES = 36
+MAX_LINES = 72
+INTERVAL_SECONDS = 150
 EMAIL_TO = os.environ["EMAIL_TO"]
 SMTP_APP_PASSWORD = os.environ["SMTP_APP_PASSWORD"]
 
@@ -164,9 +165,9 @@ def main():
             except Exception as log_error:
                 print("log error", log_error)
         remaining = deadline - time.time()
-        if remaining < 300:
+        if remaining < INTERVAL_SECONDS:
             break
-        time.sleep(300)
+        time.sleep(INTERVAL_SECONDS)
 
 
 if __name__ == "__main__":
