@@ -47,10 +47,13 @@ def telegram_api(method, payload):
 
 
 def send_telegram(text):
-    telegram_api(
-        "sendMessage",
-        {"text": text, "disable_notification": False},
-    )
+    try:
+        telegram_api(
+            "sendMessage",
+            {"text": text, "disable_notification": False},
+        )
+    except Exception as error:
+        print("telegram error", error)
 
 
 def load_state():
@@ -100,15 +103,19 @@ def log_check(line):
 
 
 def send_email(subject, body):
-    mail = EmailMessage()
-    mail["From"] = EMAIL_TO
-    mail["To"] = EMAIL_TO
-    mail["Subject"] = subject
-    mail.set_content(body)
-    with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as smtp:
-        smtp.starttls()
-        smtp.login(EMAIL_TO, SMTP_APP_PASSWORD)
-        smtp.send_message(mail)
+    try:
+        mail = EmailMessage()
+        mail["From"] = EMAIL_TO
+        mail["To"] = EMAIL_TO
+        mail["Subject"] = subject
+        mail.set_content(body)
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as smtp:
+            smtp.starttls()
+            smtp.login(EMAIL_TO, SMTP_APP_PASSWORD)
+            smtp.send_message(mail)
+        print("email sent")
+    except Exception as error:
+        print("email error", error)
 
 
 def check_once():
@@ -133,20 +140,20 @@ def check_once():
         return
 
     alert = f"נפתחו כנראה כרטיסים לפסטיבל הסרטים בחיפה!\n{URL}"
-    send_email("נפתחו כנראה כרטיסים", alert)
     send_telegram(alert)
+    send_email("נפתחו כנראה כרטיסים", alert)
     log_check(f"{now_label()} — נשלחה התראה: ייתכן שנפתחו כרטיסים.")
-    print("tickets email sent")
+    print("ticket alert sent")
 
 
 def main():
     if os.environ.get("SEND_TEST") == "true":
+        send_telegram("בדיקת התראה. אם אתה רואה את זה, טלגרם עובד.")
         send_email(
             "בדיקת התראה מהענן",
             "אם אתה רואה את זה, בדיקת הכרטיסים רצה גם כשהמחשב כבוי.",
         )
-        send_telegram("בדיקת התראה. אם אתה רואה את זה, טלגרם עובד.")
-        print("test email sent")
+        print("test alert sent")
         return
 
     loop_minutes = int(os.environ.get("LOOP_MINUTES", "0"))
