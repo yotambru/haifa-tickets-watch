@@ -1,0 +1,26 @@
+name: check tickets
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      send_test:
+        description: "Send a test email"
+        type: boolean
+        default: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check ticket page
+        env:
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          SMTP_APP_PASSWORD: ${{ secrets.SMTP_APP_PASSWORD }}
+          SEND_TEST: ${{ github.event.inputs.send_test }}
+        run: python check.py
